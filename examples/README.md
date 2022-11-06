@@ -27,3 +27,5 @@ Next, you can run the program and test it:
 go run main.go
 curl localhost:3333/prove -d @input.json
 ```
+
+In the current Fulcio setup, third parties need to trust Fulcio that it correctly verifies client OIDC tokens. An easy solution would be to make the token public in e.g. a transparency log, but this would hurt privacy. This issue can be solved if Fulcio publishes not the signed OIDC token, but instead, only the signature, the public parts of the OIDC token and a zero-knowledge proof of knowledge that those public parts were signed by the posted signature. Public witness fields of the hashed JWT preimage to prove include: "iss", "aud", "exp", "iat", "nonce", "at_hash", "c_hash", and "email_verified". The zero-knowledge proof can be posted into a transparency log in order to be publicly verifiable.
