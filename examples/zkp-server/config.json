@@ -1,0 +1,8 @@
+{
+  "zkeypath": "build/circuit_final.zkey",
+  "vkeypath": "build/verification_key.json",
+  "proofpath": "build/proof",
+  "witnesspath": "build/witness.wtns",
+  "publicpath": "build/public.json",
+  "inputpath": "build/input.json"
+}

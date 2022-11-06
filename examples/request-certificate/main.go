@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	fulcioUrl    = "https://fulcio.sigstore.dev"
+	fulcioUrl    = "http://localhost" //https://fulcio.sigstore.dev"
 	oidcIssuer   = "https://oauth2.sigstore.dev/auth"
 	oidcClientID = "sigstore"
 )
@@ -76,6 +76,8 @@ func GetCert(signer *signature.ECDSASignerVerifier, fc fulciopb.CAClient, oidcIs
 			},
 		},
 	}
+
+	log.Println("starting to CreateSigningCertificate")
 	return fc.CreateSigningCertificate(context.Background(), cscr)
 }
 
@@ -85,7 +87,7 @@ func NewClient(fulcioURL string) (fulciopb.CAClient, error) {
 		return nil, err
 	}
 	dialOpt := grpc.WithTransportCredentials(insecure.NewCredentials())
-	hostWithPort := fmt.Sprintf("%s:80", fulcioServer.Host)
+	hostWithPort := fmt.Sprintf("%s:5554", fulcioServer.Host)
 	if fulcioServer.Scheme == "https" {
 		dialOpt = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 		hostWithPort = fmt.Sprintf("%s:443", fulcioServer.Host)
