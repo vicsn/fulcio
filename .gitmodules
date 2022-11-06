@@ -1,0 +1,3 @@
+[submodule "snark-jwt-verify"]
+	path = snark-jwt-verify
+	url = https://github.com/TheFrozenFire/snark-jwt-verify
