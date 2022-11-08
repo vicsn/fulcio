@@ -19,6 +19,8 @@ services:
     build:
       context: .
       target: "deploy"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: [
       "fulcio-server",
       "serve",

@@ -22,10 +22,31 @@ circom "main.circom" --r1cs --wasm --sym --output build
 ./node_modules/snarkjs/build/cli.cjs zkey export verificationkey build/circuit_final.zkey build/verification_key.json
 ```
 
-Next, you can run the program and test it:
+Next, you can run the program and test it, which takes about 8 seconds on an i7-8565U CPU @ 1.80GHz × 8:
 ```
 go run main.go
 curl localhost:3333/prove -d @input.json
 ```
 
-In the current Fulcio setup, third parties need to trust Fulcio that it correctly verifies client OIDC tokens. An easy solution would be to make the token public in e.g. a transparency log, but this would hurt privacy. This issue can be solved if Fulcio publishes not the signed OIDC token, but instead, only the signature, the public parts of the OIDC token and a zero-knowledge proof of knowledge that those public parts were signed by the posted signature. Public witness fields of the hashed JWT preimage to prove include: "iss", "aud", "exp", "iat", "nonce", "at_hash", "c_hash", and "email_verified". The zero-knowledge proof can be posted into a transparency log in order to be publicly verifiable.
+When running fulcio, inputs can be generated on the fly and submitted over HTTP
+call to the prover application: 
+```
+docker-compose build
+docker-compose up
+go run examples/request-certificate/main.go
+```
+
+In the current Fulcio setup, third parties need to trust Fulcio that it
+correctly verifies client OIDC tokens. An easy solution would be to make the
+token public in e.g. a transparency log, but this would hurt privacy. This
+issue can be solved if Fulcio publishes not the signed OIDC token, but instead,
+only the signature, the public parts of the OIDC token and a zero-knowledge
+proof of knowledge that those public parts were signed by the posted signature.
+Public witness fields of the hashed JWT preimage to prove include: "iss",
+"aud", "exp", "iat", "nonce", "at_hash", "c_hash", and "email_verified". The
+zero-knowledge proof can be posted into a transparency log in order to be
+publicly verifiable.
+
+Note that the plonk proof system would incur a very high overhead and over 12
+GB of memory consumption. Also note that this is very much proof of concept
+code which could use some solid refactoring of variables and functions.

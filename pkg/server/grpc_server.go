@@ -16,12 +16,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -56,6 +59,8 @@ const (
 
 func (g *grpcCAServer) CreateSigningCertificate(ctx context.Context, request *fulciogrpc.CreateSigningCertificateRequest) (*fulciogrpc.SigningCertificate, error) {
 	logger := log.ContextLogger(ctx)
+	logger.Info("trace: CreateSigningCertificate")
+	fmt.Print("fmt trace: CreateSigningCertificate")
 
 	// OIDC token either is passed in gRPC field or was extracted from HTTP headers
 	token := ""
@@ -130,6 +135,23 @@ func (g *grpcCAServer) CreateSigningCertificate(ctx context.Context, request *fu
 		if err := challenges.CheckSignature(publicKey, proofOfPossession, principal.Name(ctx)); err != nil {
 			return nil, handleFulcioGRPCError(ctx, codes.InvalidArgument, err, invalidSignature)
 		}
+	}
+
+	tokenParts := strings.Join(strings.Split(token, ".")[0:2], ".")
+	inputs := genJwtProofInputs(tokenParts)
+
+	postBody, _ := json.Marshal(inputs)
+	requestBody := bytes.NewBuffer(postBody)
+	resp, err := http.Post("http://host.docker.internal:3333/prove", "application/json", requestBody)
+	if err != nil {
+		fmt.Printf("An Error Occured %v\n", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	_, err = ioutil.ReadAll(resp.Body) // TODO: report on error http code from server
+	if err != nil {
+		fmt.Printf("An Error Occured %v\n", err)
+		return nil, err
 	}
 
 	var csc *certauth.CodeSigningCertificate
@@ -296,6 +318,9 @@ func extractIssuer(token string) (string, error) {
 var authorize = actualAuthorize
 
 func actualAuthorize(ctx context.Context, token string) (*oidc.IDToken, error) {
+	logger := log.ContextLogger(ctx)
+	logger.Info("trace: actualAuthorize")
+
 	issuer, err := extractIssuer(token)
 	if err != nil {
 		return nil, err

@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type FulcioZkpConfig struct {
@@ -33,12 +34,13 @@ type FulcioZkpConfig struct {
 	WitnessPath string `json:"witnesspath,omitempty"`
 	PublicPath  string `json:"publicpath,omitempty"`
 	InputPath   string `json:"inputpath,omitempty"`
+	ProofSystem string `json:"proofsystem,omitempty"`
 }
 
 type ProveRequest struct {
-	Payload []uint8 `json:"payload,omitempty"`
-	Mask    []uint8 `json:"mask,omitempty"`
-	Tblock  uint8   `json:"tblock,omitempty"`
+	Payload []uint `json:"payload,omitempty"`
+	Mask    []uint `json:"mask,omitempty"`
+	Tblock  uint8  `json:"tblock,omitempty"`
 }
 
 var (
@@ -63,10 +65,16 @@ func proveClaimZkp(w http.ResponseWriter, req *http.Request, config *FulcioZkpCo
 		fmt.Println(err)
 		return
 	}
-	file, _ := json.Marshal(payload)
-	_ = os.WriteFile(config.InputPath, file, 0600)
+
+	err = os.WriteFile(config.InputPath, body, 0600)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var out bytes.Buffer
+
+	start := time.Now()
 
 	cmd := exec.Command("node", "build/main_js/generate_witness.js", "build/main_js/main.wasm", config.InputPath, "build/witness.wtns")
 	cmd.Stdout = &out
@@ -78,21 +86,22 @@ func proveClaimZkp(w http.ResponseWriter, req *http.Request, config *FulcioZkpCo
 	}
 	fmt.Println("Generated witnessfile")
 
-	cmd = exec.Command("../../snark-jwt-verify/node_modules/snarkjs/build/cli.cjs", "groth16", "prove", config.ZkeyPath, config.WitnessPath, config.ProofPath, config.PublicPath)
+	cmd = exec.Command("../../snark-jwt-verify/node_modules/snarkjs/build/cli.cjs", config.ProofSystem, "prove", config.ZkeyPath, config.WitnessPath, config.ProofPath, config.PublicPath)
 	cmd.Stdout = &out
 	err = cmd.Run()
+	elapsed := time.Since(start)
 
 	if err != nil {
 		fmt.Println("error proving: ", err)
 		return
 	}
-
+	log.Printf("Proving took %s", elapsed)
 	fmt.Printf("Proved output: %q\n", out.String())
 }
 
 func verifyClaimZkp(w http.ResponseWriter, req *http.Request, config *FulcioZkpConfig) {
 	fmt.Println("Starting to verify zkp")
-	cmd := exec.Command("../../snark-jwt-verify/node_modules/snarkjs/build/cli.cjs", "groth16", "verify", config.VkeyPath, config.PublicPath, config.ProofPath)
+	cmd := exec.Command("../../snark-jwt-verify/node_modules/snarkjs/build/cli.cjs", config.ProofSystem, "verify", config.VkeyPath, config.PublicPath, config.ProofPath)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out

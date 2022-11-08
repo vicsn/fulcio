@@ -4,5 +4,6 @@
   "proofpath": "build/proof",
   "witnesspath": "build/witness.wtns",
   "publicpath": "build/public.json",
-  "inputpath": "build/input.json"
+  "inputpath": "build/input.json",
+  "proofSystem": "groth16"
 }
